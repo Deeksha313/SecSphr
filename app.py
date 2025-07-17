@@ -46,11 +46,13 @@ class LeadComment(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     comment = db.Column(db.Text, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, approved, needs_revision, rejected
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    status = db.Column(db.String(20), default='pending')  # pending, approved, needs_revision, rejected, client_reply
+    parent_comment_id = db.Column(db.Integer, db.ForeignKey('lead_comment.id'), nullable=True)
     is_read = db.Column(db.Boolean, default=False)
-
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    
     # Relationships
+    parent_comment = db.relationship('LeadComment', remote_side=[id], backref='replies')
     response = db.relationship('QuestionnaireResponse', backref='lead_comments')
     lead = db.relationship('User', foreign_keys=[lead_id], backref='lead_comments_made')
     client = db.relationship('User', foreign_keys=[client_id], backref='lead_comments_received')
@@ -320,6 +322,32 @@ def mark_comment_read(comment_id):
         db.session.commit()
     return redirect(request.referrer or url_for('dashboard'))
 
+@app.route('/client/comment/<int:comment_id>/reply', methods=['POST'])
+@login_required('client')
+def client_reply_comment(comment_id):
+    parent_comment = LeadComment.query.get_or_404(comment_id)
+    if parent_comment.client_id != session['user_id']:
+        flash('Unauthorized access.')
+        return redirect(url_for('dashboard'))
+    
+    reply_text = request.form['reply']
+    if reply_text.strip():
+        # Create a reply comment
+        reply_comment = LeadComment(
+            response_id=parent_comment.response_id,
+            lead_id=parent_comment.lead_id,  # Send back to the original lead
+            client_id=session['user_id'],
+            product_id=parent_comment.product_id,
+            comment=f"Client Reply: {reply_text}",
+            status='client_reply',
+            parent_comment_id=comment_id
+        )
+        db.session.add(reply_comment)
+        db.session.commit()
+        flash('Reply sent to lead successfully.')
+    
+    return redirect(request.referrer or url_for('client_comments'))
+
 @app.route('/review/<int:response_id>', methods=['GET', 'POST'])
 @login_required('lead')
 def review_questionnaire(response_id):
@@ -347,7 +375,71 @@ def review_questionnaire(response_id):
 @login_required('superuser')
 def admin_product_details(product_id):
     resps = QuestionnaireResponse.query.filter_by(product_id=product_id).all()
-    return render_template('admin_product_details.html', responses=resps)
+    return render_template('admin_product_details.html', responses=resps, product_id=product_id)
+
+@app.route('/admin/create_product', methods=['GET', 'POST'])
+@login_required('superuser')
+def admin_create_product():
+    if request.method == 'POST':
+        product_name = request.form['product_name']
+        client_id = request.form['client_id']
+        
+        # Verify client exists
+        client = User.query.filter_by(id=client_id, role='client').first()
+        if not client:
+            flash('Invalid client selected.')
+            return redirect(url_for('admin_create_product'))
+        
+        # Create product
+        product = Product(name=product_name, owner_id=client_id)
+        db.session.add(product)
+        db.session.commit()
+        
+        flash(f'Product "{product_name}" created successfully for {client.username}.')
+        return redirect(url_for('dashboard'))
+    
+    # Get all clients for the form
+    clients = User.query.filter_by(role='client').all()
+    return render_template('admin_create_product.html', clients=clients)
+
+@app.route('/admin/analytics')
+@login_required('superuser')
+def admin_analytics():
+    # Get all products and their scores for analytics
+    products = Product.query.all()
+    analytics_data = []
+    
+    for product in products:
+        responses = QuestionnaireResponse.query.filter_by(product_id=product.id).all()
+        if responses:
+            # Calculate average score for this product
+            total_score = 0
+            total_questions = 0
+            section_scores = {}
+            
+            for response in responses:
+                if response.answer.isdigit():
+                    score = int(response.answer)
+                    total_score += score
+                    total_questions += 1
+                    
+                    if response.section not in section_scores:
+                        section_scores[response.section] = []
+                    section_scores[response.section].append(score)
+            
+            if total_questions > 0:
+                avg_score = total_score / total_questions
+                owner = User.query.get(product.owner_id)
+                
+                analytics_data.append({
+                    'product': product,
+                    'owner': owner,
+                    'avg_score': avg_score,
+                    'total_responses': len(responses),
+                    'section_scores': {k: sum(v)/len(v) for k, v in section_scores.items()}
+                })
+    
+    return render_template('admin_analytics.html', analytics_data=analytics_data)
 
 @app.route('/admin/products/delete/<int:product_id>')
 @login_required('superuser')

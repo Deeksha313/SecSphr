@@ -70,26 +70,82 @@
                                         </span>
                                     </div>
                                     
-                                    {% if not comment.is_read %}
                                     <div class="d-grid gap-2">
+                                        {% if not comment.is_read %}
                                         <a href="{{ url_for('mark_comment_read', comment_id=comment.id) }}" 
                                            class="btn btn-outline-primary btn-sm">
                                             <i class="bi bi-check2 me-1"></i>Mark as Read
                                         </a>
-                                    </div>
-                                    {% endif %}
-                                    
-                                    {% if comment.response %}
-                                    <div class="mt-2">
+                                        {% endif %}
+                                        
+                                        <button class="btn btn-outline-success btn-sm" 
+                                                data-bs-toggle="collapse" 
+                                                data-bs-target="#reply-{{ comment.id }}">
+                                            <i class="bi bi-reply me-1"></i>Reply
+                                        </button>
+                                        
+                                        {% if comment.response %}
                                         <a href="{{ url_for('product_results', product_id=comment.product_id) }}" 
                                            class="btn btn-outline-info btn-sm">
-                                            <i class="bi bi-eye me-1"></i>View Product Details
+                                            <i class="bi bi-eye me-1"></i>View Details
                                         </a>
+                                        {% endif %}
                                     </div>
-                                    {% endif %}
                                 </div>
                             </div>
                         </div>
+                        
+                        <!-- Reply Form -->
+                        <div class="collapse mt-3" id="reply-{{ comment.id }}">
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <h6 class="mb-3">
+                                        <i class="bi bi-reply me-2"></i>Reply to Lead
+                                    </h6>
+                                    <form method="post" action="{{ url_for('client_reply_comment', comment_id=comment.id) }}">
+                                        <div class="mb-3">
+                                            <textarea class="form-control" name="reply" rows="3" 
+                                                      placeholder="Type your reply here..." required></textarea>
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-success btn-sm">
+                                                <i class="bi bi-send me-1"></i>Send Reply
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" 
+                                                    data-bs-toggle="collapse" 
+                                                    data-bs-target="#reply-{{ comment.id }}">
+                                                <i class="bi bi-x me-1"></i>Cancel
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Show Replies -->
+                        {% if comment.replies %}
+                        <div class="mt-3">
+                            <h6 class="text-muted mb-2">
+                                <i class="bi bi-chat-left-dots me-2"></i>Conversation Thread
+                            </h6>
+                            {% for reply in comment.replies %}
+                            <div class="card bg-light border-0 ms-4 mb-2">
+                                <div class="card-body py-2">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <strong>{{ reply.client.username if reply.client_id == session['user_id'] else reply.lead.username }}</strong>
+                                            <small class="text-muted ms-2">{{ reply.created_at.strftime('%b %d, %Y at %I:%M %p') }}</small>
+                                        </div>
+                                        <span class="badge bg-{% if reply.status == 'client_reply' %}info{% else %}primary{% endif %} rounded-pill">
+                                            {{ 'You' if reply.client_id == session['user_id'] else 'Lead' }}
+                                        </span>
+                                    </div>
+                                    <p class="mb-0 mt-2">{{ reply.comment.replace('Client Reply: ', '') if reply.comment.startswith('Client Reply: ') else reply.comment }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}
