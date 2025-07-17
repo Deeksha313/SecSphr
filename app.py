@@ -39,6 +39,23 @@ class QuestionnaireResponse(db.Model):
     evidence_path = db.Column(db.String(200))
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
+class LeadComment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    response_id = db.Column(db.Integer, db.ForeignKey('questionnaire_response.id'))
+    lead_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    client_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    comment = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default='pending')  # pending, approved, needs_revision, rejected
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    is_read = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    response = db.relationship('QuestionnaireResponse', backref='lead_comments')
+    lead = db.relationship('User', foreign_keys=[lead_id], backref='lead_comments_made')
+    client = db.relationship('User', foreign_keys=[client_id], backref='lead_comments_received')
+    product = db.relationship('Product', backref='lead_comments')
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -193,7 +210,10 @@ def dashboard():
             }
             products_with_status.append(product_info)
         
-        return render_template('dashboard_client.html', products=products_with_status)
+        # Get unread comments count
+        unread_comments = LeadComment.query.filter_by(client_id=user_id, is_read=False).count()
+        
+        return render_template('dashboard_client.html', products=products_with_status, unread_comments=unread_comments)
     elif role == 'lead':
         resps = QuestionnaireResponse.query.all()
         return render_template('dashboard_lead.html', responses=resps)
@@ -281,7 +301,24 @@ def fill_questionnaire_section(product_id, section_idx):
 @login_required('client')
 def product_results(product_id):
     resps = QuestionnaireResponse.query.filter_by(product_id=product_id, user_id=session['user_id']).all()
-    return render_template('product_results.html', responses=resps)
+    # Get lead comments for this product
+    lead_comments = LeadComment.query.filter_by(product_id=product_id, client_id=session['user_id']).order_by(LeadComment.created_at.desc()).all()
+    return render_template('product_results.html', responses=resps, lead_comments=lead_comments)
+
+@app.route('/client/comments')
+@login_required('client')
+def client_comments():
+    comments = LeadComment.query.filter_by(client_id=session['user_id']).order_by(LeadComment.created_at.desc()).all()
+    return render_template('client_comments.html', comments=comments)
+
+@app.route('/client/comment/<int:comment_id>/read')
+@login_required('client')
+def mark_comment_read(comment_id):
+    comment = LeadComment.query.get_or_404(comment_id)
+    if comment.client_id == session['user_id']:
+        comment.is_read = True
+        db.session.commit()
+    return redirect(request.referrer or url_for('dashboard'))
 
 @app.route('/review/<int:response_id>', methods=['GET', 'POST'])
 @login_required('lead')
@@ -289,9 +326,20 @@ def review_questionnaire(response_id):
     resp = QuestionnaireResponse.query.get_or_404(response_id)
     if request.method == 'POST':
         comment = request.form['lead_comment']
-        resp.comment = comment
+        status = request.form.get('review_status', 'pending')
+        
+        # Create lead comment
+        lead_comment = LeadComment(
+            response_id=response_id,
+            lead_id=session['user_id'],
+            client_id=resp.user_id,
+            product_id=resp.product_id,
+            comment=comment,
+            status=status
+        )
+        db.session.add(lead_comment)
         db.session.commit()
-        flash('Review comment saved.')
+        flash('Review comment sent to client.')
         return redirect(url_for('dashboard'))
     return render_template('review_questionnaire.html', response=resp)
 
@@ -316,35 +364,156 @@ def admin_delete_product(product_id):
 def api_product_scores(product_id):
     resps = QuestionnaireResponse.query.filter_by(product_id=product_id).all()
     section_scores = {}
+    section_max_scores = {}
     section_counts = {}
     total_score = 0
-    max_score = 0
+    total_max_score = 0
     csv_map = {}
+    
+    # Build scoring map from CSV
     with open('devweb.csv', encoding='utf-8') as f:
         reader = csv.DictReader(f)
         for row in reader:
-            q = row['Questions'].strip()
-            opts = [o.strip() for o in row['Options'].split('\n') if o.strip()]
-            scores = [int(s.strip()) if s.strip().isdigit() else 0 for s in row['Scores'].split('\n') if s.strip()]
-            csv_map[q] = dict(zip(opts, scores))
-            if scores: max_score += max(scores)
+            dimension = row['Dimensions'].strip()
+            question = row['Questions'].strip()
+            if question:  # Only process rows with questions
+                options = [o.strip() for o in row['Options'].split('\n') if o.strip()]
+                scores = []
+                for s in row['Scores'].split('\n'):
+                    s = s.strip()
+                    if s.isdigit():
+                        scores.append(int(s))
+                    else:
+                        scores.append(0)
+                
+                if len(options) == len(scores):
+                    csv_map[question] = dict(zip(options, scores))
+                    if dimension not in section_max_scores:
+                        section_max_scores[dimension] = 0
+                    if scores:
+                        section_max_scores[dimension] += max(scores)
+                        total_max_score += max(scores)
+    
+    # Calculate actual scores
     for r in resps:
         sec = r.section
         if sec not in section_scores:
             section_scores[sec] = 0
             section_counts[sec] = 0
+        
         score = csv_map.get(r.question, {}).get(r.answer, 0)
         section_scores[sec] += score
         section_counts[sec] += 1
         total_score += score
+    
+    # Calculate percentages
     section_labels = list(section_scores.keys())
     section_values = [section_scores[k] for k in section_labels]
+    section_percentages = []
+    
+    for section in section_labels:
+        max_section_score = section_max_scores.get(section, 1)
+        percentage = (section_scores[section] / max_section_score * 100) if max_section_score > 0 else 0
+        section_percentages.append(round(percentage, 1))
+    
+    overall_percentage = (total_score / total_max_score * 100) if total_max_score > 0 else 0
+    
     return jsonify({
         "section_labels": section_labels,
         "section_scores": section_values,
+        "section_percentages": section_percentages,
+        "section_max_scores": [section_max_scores.get(k, 0) for k in section_labels],
         "total_score": total_score,
-        "max_score": max_score
+        "max_score": total_max_score,
+        "overall_percentage": round(overall_percentage, 1),
+        "sections_count": len(section_labels)
     })
+
+@app.route('/api/superuser/all_scores')
+@login_required('superuser')
+def api_all_scores():
+    products = Product.query.all()
+    all_scores = []
+    
+    for product in products:
+        product_data = {}
+        resps = QuestionnaireResponse.query.filter_by(product_id=product.id).all()
+        
+        if resps:
+            # Get scores for this product
+            section_scores = {}
+            section_max_scores = {}
+            total_score = 0
+            total_max_score = 0
+            csv_map = {}
+            
+            # Build scoring map
+            with open('devweb.csv', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    dimension = row['Dimensions'].strip()
+                    question = row['Questions'].strip()
+                    if question:
+                        options = [o.strip() for o in row['Options'].split('\n') if o.strip()]
+                        scores = []
+                        for s in row['Scores'].split('\n'):
+                            s = s.strip()
+                            if s.isdigit():
+                                scores.append(int(s))
+                            else:
+                                scores.append(0)
+                        
+                        if len(options) == len(scores):
+                            csv_map[question] = dict(zip(options, scores))
+                            if dimension not in section_max_scores:
+                                section_max_scores[dimension] = 0
+                            if scores:
+                                section_max_scores[dimension] += max(scores)
+                                total_max_score += max(scores)
+            
+            # Calculate scores
+            for r in resps:
+                sec = r.section
+                if sec not in section_scores:
+                    section_scores[sec] = 0
+                
+                score = csv_map.get(r.question, {}).get(r.answer, 0)
+                section_scores[sec] += score
+                total_score += score
+            
+            overall_percentage = (total_score / total_max_score * 100) if total_max_score > 0 else 0
+            
+            # Get owner info
+            owner = User.query.get(product.owner_id)
+            
+            product_data = {
+                'id': product.id,
+                'name': product.name,
+                'owner': owner.username if owner else 'Unknown',
+                'organization': owner.organization if owner else 'Unknown',
+                'total_score': total_score,
+                'max_score': total_max_score,
+                'percentage': round(overall_percentage, 1),
+                'section_scores': section_scores,
+                'section_percentages': {k: round((v / section_max_scores.get(k, 1) * 100), 1) 
+                                       for k, v in section_scores.items()}
+            }
+        else:
+            product_data = {
+                'id': product.id,
+                'name': product.name,
+                'owner': 'Unknown',
+                'organization': 'Unknown',
+                'total_score': 0,
+                'max_score': 0,
+                'percentage': 0,
+                'section_scores': {},
+                'section_percentages': {}
+            }
+        
+        all_scores.append(product_data)
+    
+    return jsonify(all_scores)
 
 if __name__ == '__main__':
     os.makedirs('static/uploads', exist_ok=True)
