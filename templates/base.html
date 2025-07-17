@@ -62,36 +62,36 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary shadow-lg">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-lg" style="background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);">
     <div class="container">
-        <a class="navbar-brand fw-bold" href="/">
-            <i class="bi bi-shield-lock-fill"></i> SecureSphere
+        <a class="navbar-brand fw-bold text-white" href="/">
+            <i class="bi bi-shield-lock-fill text-primary"></i> SecureSphere
         </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+        <button class="navbar-toggler border-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav">
                 {% if session['user_id'] %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('dashboard') }}">
-                            <i class="bi bi-speedometer2"></i> Dashboard
+                        <a class="nav-link text-white fw-medium px-3" href="{{ url_for('dashboard') }}" style="border-radius: 6px; transition: all 0.2s ease;">
+                            <i class="bi bi-speedometer2 me-1"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logout') }}">
-                            <i class="bi bi-box-arrow-right"></i> Logout
+                        <a class="nav-link text-white fw-medium px-3 ms-2" href="{{ url_for('logout') }}" style="border-radius: 6px; transition: all 0.2s ease; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <i class="bi bi-box-arrow-right me-1"></i> Logout
                         </a>
                     </li>
                 {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('login') }}">
-                            <i class="bi bi-box-arrow-in-right"></i> Login
+                        <a class="nav-link text-white fw-medium px-3" href="{{ url_for('login') }}" style="border-radius: 6px; transition: all 0.2s ease; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3);">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Login
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('register') }}">
-                            <i class="bi bi-person-plus"></i> Register
+                        <a class="nav-link text-white fw-medium px-3 ms-2" href="{{ url_for('register') }}" style="border-radius: 6px; transition: all 0.2s ease; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.3);">
+                            <i class="bi bi-person-plus me-1"></i> Register
                         </a>
                     </li>
                 {% endif %}
