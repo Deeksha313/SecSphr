@@ -47,8 +47,9 @@ class LeadComment(db.Model):
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
     comment = db.Column(db.Text, nullable=False)
     status = db.Column(db.String(20), default='pending')  # pending, approved, needs_revision, rejected
-    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     is_read = db.Column(db.Boolean, default=False)
+    client_reply = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
 
     # Relationships
     response = db.relationship('QuestionnaireResponse', backref='lead_comments')
@@ -514,6 +515,124 @@ def api_all_scores():
         all_scores.append(product_data)
     
     return jsonify(all_scores)
+
+# Enhanced commenting routes for smooth lead-client interaction
+@app.route('/client/comment/<int:comment_id>/reply', methods=['POST'])
+@login_required('client')
+def reply_to_comment(comment_id):
+    comment = LeadComment.query.get_or_404(comment_id)
+    if comment.client_id == session['user_id']:
+        reply = request.form.get('reply')
+        if reply:
+            comment.client_reply = reply
+            comment.is_read = True
+            db.session.commit()
+            flash('Reply sent successfully.')
+    return redirect(request.referrer or url_for('client_comments'))
+
+@app.route('/api/comments/<int:product_id>')
+@login_required()
+def get_comments(product_id):
+    """Get all comments for a product with real-time updates"""
+    if session['role'] == 'client':
+        comments = LeadComment.query.filter_by(product_id=product_id, client_id=session['user_id']).order_by(LeadComment.created_at.desc()).all()
+    else:
+        comments = LeadComment.query.filter_by(product_id=product_id).order_by(LeadComment.created_at.desc()).all()
+    
+    comment_data = []
+    for comment in comments:
+        lead = User.query.get(comment.lead_id)
+        client = User.query.get(comment.client_id)
+        comment_data.append({
+            'id': comment.id,
+            'comment': comment.comment,
+            'status': comment.status,
+            'client_reply': comment.client_reply,
+            'is_read': comment.is_read,
+            'created_at': comment.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'lead_name': lead.username if lead else 'Unknown',
+            'client_name': client.username if client else 'Unknown'
+        })
+    
+    return jsonify(comment_data)
+
+# Admin routes for creating products and viewing scores
+@app.route('/admin/create_product', methods=['GET', 'POST'])
+@login_required('superuser')
+def admin_create_product():
+    if request.method == 'POST':
+        product_name = request.form['product_name']
+        client_id = request.form['client_id']
+        
+        # Check if client exists
+        client = User.query.filter_by(id=client_id, role='client').first()
+        if not client:
+            flash('Selected client not found.')
+            return redirect(url_for('admin_create_product'))
+        
+        # Create product for the client
+        product = Product(name=product_name, owner_id=client_id)
+        db.session.add(product)
+        db.session.commit()
+        
+        flash(f'Product "{product_name}" created for client {client.username}.')
+        return redirect(url_for('dashboard'))
+    
+    # Get all clients for the dropdown
+    clients = User.query.filter_by(role='client').all()
+    return render_template('admin_create_product.html', clients=clients)
+
+@app.route('/admin/scores_dashboard')
+@login_required('superuser')
+def admin_scores_dashboard():
+    """Admin dashboard with charts showing all client scores"""
+    products = Product.query.all()
+    score_data = []
+    
+    for product in products:
+        resps = QuestionnaireResponse.query.filter_by(product_id=product.id).all()
+        if resps:
+            owner = User.query.get(product.owner_id)
+            
+            # Calculate total score and percentage
+            total_score = 0
+            max_possible_score = 0
+            section_scores = {}
+            
+            for resp in resps:
+                section = resp.section
+                if section not in section_scores:
+                    section_scores[section] = {'score': 0, 'total': 0}
+                
+                # Simple scoring: each answer gets points based on option selection
+                if resp.answer:
+                    questions_in_section = QUESTIONNAIRE.get(section, [])
+                    for q in questions_in_section:
+                        if q['question'] == resp.question:
+                            options = q.get('options', [])
+                            max_possible_score += len(options)
+                            section_scores[section]['total'] += len(options)
+                            
+                            # Score based on option index (higher index = better score)
+                            if resp.answer in options:
+                                score = options.index(resp.answer) + 1
+                                total_score += score
+                                section_scores[section]['score'] += score
+                            break
+            
+            percentage = round((total_score / max_possible_score * 100), 1) if max_possible_score > 0 else 0
+            
+            score_data.append({
+                'product_name': product.name,
+                'client_name': owner.username if owner else 'Unknown',
+                'organization': owner.organization if owner else 'Unknown',
+                'total_score': total_score,
+                'max_score': max_possible_score,
+                'percentage': percentage,
+                'section_scores': section_scores
+            })
+    
+    return render_template('admin_scores_dashboard.html', score_data=score_data, sections=SECTION_IDS)
 
 if __name__ == '__main__':
     os.makedirs('static/uploads', exist_ok=True)

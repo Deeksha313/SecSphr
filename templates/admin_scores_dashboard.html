@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Scores Dashboard - SecureSphere{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="fw-bold">
+                <i class="bi bi-bar-chart-fill me-2"></i>Client Scores Dashboard
+            </h2>
+            <p class="text-muted">Overview of all client assessment scores and performance metrics</p>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Total Products</h6>
+                            <h3 class="mb-0">{{ score_data|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-box-seam fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Avg Score</h6>
+                            <h3 class="mb-0">{{ "%.1f"|format((score_data|sum(attribute='percentage') / score_data|length) if score_data else 0) }}%</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-trophy fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">High Performers</h6>
+                            <h3 class="mb-0">{{ score_data|selectattr('percentage', '>=', 80)|list|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-star-fill fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h6 class="card-title">Need Attention</h6>
+                            <h3 class="mb-0">{{ score_data|selectattr('percentage', '<', 60)|list|length }}</h3>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="bi bi-exclamation-triangle fs-1 opacity-75"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-bar-chart me-2"></i>Overall Performance by Client
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="clientScoresChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pie-chart me-2"></i>Score Distribution
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="scoreDistributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Performance Chart -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-graph-up me-2"></i>Section-wise Performance
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="sectionChart" height="80"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detailed Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="bi bi-table me-2"></i>Detailed Scores
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Client</th>
+                                    <th>Organization</th>
+                                    <th>Score</th>
+                                    <th>Percentage</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in score_data %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ item.product_name }}</strong>
+                                    </td>
+                                    <td>{{ item.client_name }}</td>
+                                    <td>{{ item.organization }}</td>
+                                    <td>{{ item.total_score }}/{{ item.max_score }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress me-2" style="width: 60px; height: 8px;">
+                                                <div class="progress-bar 
+                                                    {% if item.percentage >= 80 %}bg-success
+                                                    {% elif item.percentage >= 60 %}bg-warning
+                                                    {% else %}bg-danger{% endif %}"
+                                                    style="width: {{ item.percentage }}%"></div>
+                                            </div>
+                                            <span class="fw-semibold">{{ item.percentage }}%</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if item.percentage >= 80 %}
+                                            <span class="badge bg-success">Excellent</span>
+                                        {% elif item.percentage >= 60 %}
+                                            <span class="badge bg-warning">Good</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Needs Improvement</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewDetails('{{ item.product_name }}')">
+                                            <i class="bi bi-eye"></i> View
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Chart.js configurations
+const chartColors = {
+    primary: '#8b5cf6',
+    success: '#10b981',
+    warning: '#f59e0b',
+    danger: '#ef4444',
+    info: '#3b82f6'
+};
+
+// Client Scores Chart
+const clientScoresCtx = document.getElementById('clientScoresChart').getContext('2d');
+const clientLabels = {{ score_data|map(attribute='client_name')|list|tojson }};
+const clientScores = {{ score_data|map(attribute='percentage')|list|tojson }};
+
+new Chart(clientScoresCtx, {
+    type: 'bar',
+    data: {
+        labels: clientLabels,
+        datasets: [{
+            label: 'Score (%)',
+            data: clientScores,
+            backgroundColor: chartColors.primary,
+            borderColor: chartColors.primary,
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+// Score Distribution Chart
+const scoreDistCtx = document.getElementById('scoreDistributionChart').getContext('2d');
+const excellent = {{ score_data|selectattr('percentage', '>=', 80)|list|length }};
+const good = {{ score_data|selectattr('percentage', '>=', 60)|selectattr('percentage', '<', 80)|list|length }};
+const needsImprovement = {{ score_data|selectattr('percentage', '<', 60)|list|length }};
+
+new Chart(scoreDistCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Excellent (80%+)', 'Good (60-79%)', 'Needs Improvement (<60%)'],
+        datasets: [{
+            data: [excellent, good, needsImprovement],
+            backgroundColor: [chartColors.success, chartColors.warning, chartColors.danger]
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: true
+    }
+});
+
+// Section Performance Chart
+const sectionCtx = document.getElementById('sectionChart').getContext('2d');
+const sections = {{ sections|tojson }};
+
+// Calculate average section scores
+const sectionAverages = {};
+sections.forEach(section => {
+    let total = 0;
+    let count = 0;
+    {% for item in score_data %}
+        {% for section, scores in item.section_scores.items() %}
+            if ('{{ section }}' === section) {
+                total += {{ ((scores.score / scores.total) * 100)|round(1) if scores.total > 0 else 0 }};
+                count++;
+            }
+        {% endfor %}
+    {% endfor %}
+    sectionAverages[section] = count > 0 ? total / count : 0;
+});
+
+new Chart(sectionCtx, {
+    type: 'radar',
+    data: {
+        labels: sections,
+        datasets: [{
+            label: 'Average Section Performance (%)',
+            data: Object.values(sectionAverages),
+            backgroundColor: 'rgba(139, 92, 246, 0.2)',
+            borderColor: chartColors.primary,
+            pointBackgroundColor: chartColors.primary,
+            pointBorderColor: '#fff',
+            pointHoverBackgroundColor: '#fff',
+            pointHoverBorderColor: chartColors.primary
+        }]
+    },
+    options: {
+        responsive: true,
+        scale: {
+            ticks: {
+                beginAtZero: true,
+                max: 100
+            }
+        }
+    }
+});
+
+function viewDetails(productName) {
+    alert('Detailed view for ' + productName + ' would open here');
+}
+</script>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.progress {
+    background-color: #e9ecef;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+</style>
+{% endblock %}
