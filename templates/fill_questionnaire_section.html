@@ -77,12 +77,13 @@
                                                 <div class="form-check answer-option">
                                                     <input class="form-check-input" type="radio" 
                                                            name="answer_{{ loop.index0 }}" 
-                                                           id="answer_{{ loop.index0 }}_{{ loop.index0 }}" 
+                                                           id="answer_{{ outer_loop.index0 }}_{{ loop.index0 }}" 
                                                            value="{{ option }}"
-                                                           data-question-idx="{{ loop.index0 }}"
+                                                           data-question-idx="{{ outer_loop.index0 }}"
                                                            data-section-idx="{{ section_idx }}"
-                                                           data-product-id="{{ product.id }}">
-                                                    <label class="form-check-label" for="answer_{{ loop.index0 }}_{{ loop.index0 }}">
+                                                           data-product-id="{{ product.id }}"
+                                                           required>
+                                                    <label class="form-check-label" for="answer_{{ outer_loop.index0 }}_{{ loop.index0 }}">
                                                         {{ option }}
                                                     </label>
                                                 </div>

@@ -16,7 +16,7 @@
         <div class="card-body">
             <div class="row align-items-center">
                 <div class="col-8">
-                    <h3 class="mb-0">{{ products|length }}</h3>
+                    <h3 class="mb-0" id="totalProducts">{{ products|length }}</h3>
                     <p class="mb-0">Total Products</p>
                 </div>
                 <div class="col-4">
@@ -30,11 +30,11 @@
         <div class="card-body">
             <div class="row align-items-center">
                 <div class="col-8">
-                    <h3 class="mb-0">{{ products|length * 7 }}</h3>
-                    <p class="mb-0">Total Questions</p>
+                    <h3 class="mb-0" id="avgScore">-</h3>
+                    <p class="mb-0">Average Score</p>
                 </div>
                 <div class="col-4">
-                    <i class="bi bi-question-circle icon"></i>
+                    <i class="bi bi-graph-up icon"></i>
                 </div>
             </div>
         </div>
@@ -44,11 +44,61 @@
         <div class="card-body">
             <div class="row align-items-center">
                 <div class="col-8">
-                    <h3 class="mb-0">{{ products|length * 10 }}</h3>
-                    <p class="mb-0">Total Responses</p>
+                    <h3 class="mb-0" id="completedAssessments">-</h3>
+                    <p class="mb-0">Completed</p>
                 </div>
                 <div class="col-4">
-                    <i class="bi bi-chat-square-text icon"></i>
+                    <i class="bi bi-check-circle icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Interactive Charts Section -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card dashboard-card h-100">
+            <div class="card-header bg-gradient-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-pie-chart me-2"></i>Overall Security Distribution
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="overallScoreChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card dashboard-card h-100">
+            <div class="card-header bg-gradient-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-bar-chart me-2"></i>Score Distribution by Organization
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="organizationChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-gradient-primary text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-graph-up me-2"></i>Security Dimension Performance
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="chart-container">
+                    <canvas id="dimensionChart"></canvas>
                 </div>
             </div>
         </div>
@@ -320,6 +370,236 @@
 <!-- Other modals (Maintenance, Help) would go here -->
 
 <script>
+// Global chart variables
+let overallScoreChart, organizationChart, dimensionChart;
+
+// Initialize all charts and data
+document.addEventListener('DOMContentLoaded', function() {
+    loadAllScores();
+});
+
+async function loadAllScores() {
+    try {
+        const response = await fetch('/api/superuser/all_scores');
+        const data = await response.json();
+        
+        updateStatistics(data);
+        createOverallScoreChart(data);
+        createOrganizationChart(data);
+        createDimensionChart(data);
+    } catch (error) {
+        console.error('Error loading scores:', error);
+    }
+}
+
+function updateStatistics(data) {
+    const totalProducts = data.length;
+    const completedAssessments = data.filter(p => p.percentage > 0).length;
+    const avgScore = data.length > 0 ? 
+        (data.reduce((sum, p) => sum + p.percentage, 0) / data.length).toFixed(1) + '%' : '0%';
+    
+    document.getElementById('totalProducts').textContent = totalProducts;
+    document.getElementById('avgScore').textContent = avgScore;
+    document.getElementById('completedAssessments').textContent = completedAssessments;
+}
+
+function createOverallScoreChart(data) {
+    const ctx = document.getElementById('overallScoreChart').getContext('2d');
+    
+    // Categorize scores
+    const excellent = data.filter(p => p.percentage >= 80).length;
+    const good = data.filter(p => p.percentage >= 60 && p.percentage < 80).length;
+    const average = data.filter(p => p.percentage >= 40 && p.percentage < 60).length;
+    const poor = data.filter(p => p.percentage < 40 && p.percentage > 0).length;
+    const notStarted = data.filter(p => p.percentage === 0).length;
+    
+    if (overallScoreChart) overallScoreChart.destroy();
+    
+    overallScoreChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Excellent (80%+)', 'Good (60-79%)', 'Average (40-59%)', 'Poor (<40%)', 'Not Started'],
+            datasets: [{
+                data: [excellent, good, average, poor, notStarted],
+                backgroundColor: [
+                    '#10b981',
+                    '#3b82f6', 
+                    '#f59e0b',
+                    '#ef4444',
+                    '#6b7280'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                            return `${label}: ${value} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createOrganizationChart(data) {
+    const ctx = document.getElementById('organizationChart').getContext('2d');
+    
+    // Group by organization
+    const orgData = {};
+    data.forEach(product => {
+        const org = product.organization || 'Unknown';
+        if (!orgData[org]) {
+            orgData[org] = { total: 0, count: 0 };
+        }
+        orgData[org].total += product.percentage;
+        orgData[org].count += 1;
+    });
+    
+    const labels = Object.keys(orgData);
+    const avgScores = labels.map(org => 
+        orgData[org].count > 0 ? (orgData[org].total / orgData[org].count).toFixed(1) : 0
+    );
+    
+    if (organizationChart) organizationChart.destroy();
+    
+    organizationChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Average Score (%)',
+                data: avgScores,
+                backgroundColor: 'rgba(139, 92, 246, 0.7)',
+                borderColor: 'rgba(139, 92, 246, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Average Score: ${context.raw}%`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function createDimensionChart(data) {
+    const ctx = document.getElementById('dimensionChart').getContext('2d');
+    
+    // Aggregate dimension scores across all products
+    const dimensionTotals = {};
+    const dimensionCounts = {};
+    
+    data.forEach(product => {
+        Object.keys(product.section_percentages || {}).forEach(dimension => {
+            if (!dimensionTotals[dimension]) {
+                dimensionTotals[dimension] = 0;
+                dimensionCounts[dimension] = 0;
+            }
+            dimensionTotals[dimension] += product.section_percentages[dimension];
+            dimensionCounts[dimension] += 1;
+        });
+    });
+    
+    const labels = Object.keys(dimensionTotals);
+    const avgScores = labels.map(dimension => 
+        dimensionCounts[dimension] > 0 ? 
+        (dimensionTotals[dimension] / dimensionCounts[dimension]).toFixed(1) : 0
+    );
+    
+    if (dimensionChart) dimensionChart.destroy();
+    
+    dimensionChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Average Dimension Score (%)',
+                data: avgScores,
+                backgroundColor: 'rgba(139, 92, 246, 0.2)',
+                borderColor: 'rgba(139, 92, 246, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(139, 92, 246, 1)',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        },
+                        stepSize: 20
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.label}: ${context.raw}%`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
 // Search and Filter Functions
 function filterProducts() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();

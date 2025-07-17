@@ -103,6 +103,66 @@
     </div>
 </div>
 
+<!-- Lead Comments Section -->
+{% if lead_comments %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-gradient-info text-white">
+                <h5 class="mb-0">
+                    <i class="bi bi-chat-left-text me-2"></i>Lead Feedback & Comments
+                </h5>
+            </div>
+            <div class="card-body">
+                {% for comment in lead_comments[:3] %}
+                <div class="card mb-3 {% if not comment.is_read %}border-warning{% endif %}">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">
+                                <i class="bi bi-person-badge me-2"></i>{{ comment.lead.username }}
+                                {% if not comment.is_read %}
+                                    <span class="badge bg-warning text-dark ms-2">New</span>
+                                {% endif %}
+                            </h6>
+                            <small class="text-muted">{{ comment.created_at.strftime('%b %d, %Y') }}</small>
+                        </div>
+                        
+                        <div class="alert alert-light border mb-2">
+                            <p class="mb-0">{{ comment.comment }}</p>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge 
+                                {% if comment.status == 'approved' %}bg-success
+                                {% elif comment.status == 'needs_revision' %}bg-warning
+                                {% elif comment.status == 'rejected' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ comment.status.replace('_', ' ').title() }}
+                            </span>
+                            {% if not comment.is_read %}
+                            <a href="{{ url_for('mark_comment_read', comment_id=comment.id) }}" 
+                               class="btn btn-outline-primary btn-sm">
+                                Mark as Read
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                {% if lead_comments|length > 3 %}
+                <div class="text-center">
+                    <a href="{{ url_for('client_comments') }}" class="btn btn-outline-info">
+                        <i class="bi bi-eye me-2"></i>View All Comments ({{ lead_comments|length }})
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <!-- Detailed Results -->
 <div class="row">
     <div class="col-12">
@@ -245,24 +305,30 @@
 fetch('{{ url_for("api_product_scores", product_id=responses[0].product_id) }}')
     .then(res => res.json())
     .then(data => {
-        // Update stats
-        document.getElementById('overallScore').textContent = data.total_score;
-        document.getElementById('sectionsCount').textContent = data.section_labels.length;
+        // Update stats with improved scoring
+        document.getElementById('overallScore').textContent = data.overall_percentage + '%';
+        document.getElementById('sectionsCount').textContent = data.sections_count;
         
-        const percentage = Math.round((data.total_score / data.max_score) * 100);
+        const percentage = data.overall_percentage || 0;
         document.getElementById('overallProgress').style.width = percentage + '%';
         document.getElementById('scoreText').textContent = `${data.total_score} out of ${data.max_score} (${percentage}%)`;
         
-        // Overall Chart
+        // Overall Chart - Enhanced
         const overallCtx = document.getElementById('overallChart').getContext('2d');
         new Chart(overallCtx, {
             type: 'doughnut',
             data: {
-                labels: ['Score', 'Remaining'],
+                labels: ['Achieved Score', 'Remaining'],
                 datasets: [{
-                    data: [data.total_score, data.max_score - data.total_score],
-                    backgroundColor: ['#2563eb', '#e5e7eb'],
-                    borderWidth: 0
+                    data: [percentage, 100 - percentage],
+                    backgroundColor: [
+                        percentage >= 80 ? '#10b981' : 
+                        percentage >= 60 ? '#3b82f6' : 
+                        percentage >= 40 ? '#f59e0b' : '#ef4444', 
+                        '#e5e7eb'
+                    ],
+                    borderWidth: 3,
+                    borderColor: '#ffffff'
                 }]
             },
             options: {
@@ -270,33 +336,71 @@ fetch('{{ url_for("api_product_scores", product_id=responses[0].product_id) }}')
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        display: false
+                        position: 'bottom',
+                        labels: {
+                            usePointStyle: true,
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw.toFixed(1) + '%';
+                            }
+                        }
                     }
                 },
-                cutout: '70%'
+                cutout: '65%'
             }
         });
         
-        // Section Chart
+        // Section Chart - Enhanced with percentages
         const sectionCtx = document.getElementById('sectionChart').getContext('2d');
         new Chart(sectionCtx, {
             type: 'bar',
             data: {
                 labels: data.section_labels,
                 datasets: [{
-                    label: 'Score',
-                    data: data.section_scores,
-                    backgroundColor: '#2563eb',
-                    borderRadius: 8,
+                    label: 'Score (%)',
+                    data: data.section_percentages,
+                    backgroundColor: data.section_percentages.map(score => 
+                        score >= 80 ? '#10b981' : 
+                        score >= 60 ? '#3b82f6' : 
+                        score >= 40 ? '#f59e0b' : '#ef4444'
+                    ),
+                    borderRadius: 6,
                     borderSkipped: false
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45
+                        }
+                    }
+                },
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.raw + '%';
+                            }
+                        }
                     }
                 },
                 scales: {
