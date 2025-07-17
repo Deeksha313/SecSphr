@@ -1,25 +1,30 @@
-/* Modern Professional Styling */
+/* Modern Professional Styling - Accorian-inspired Design */
 :root {
-    /* Professional Purple Palette */
-    --primary-color: #8b5cf6;
-    --primary-dark: #7c3aed;
-    --primary-light: #a78bfa;
-    --primary-lighter: #e9d5ff;
-    --primary-lightest: #f3e8ff;
+    /* Professional Blue Palette - Inspired by Accorian */
+    --primary-color: #3b82f6;
+    --primary-dark: #1e40af;
+    --primary-light: #60a5fa;
+    --primary-lighter: #dbeafe;
+    --primary-lightest: #eff6ff;
     
     /* Supporting Colors */
-    --secondary-color: #64748b;
-    --secondary-light: #94a3b8;
+    --secondary-color: #475569;
+    --secondary-light: #64748b;
     --success-color: #10b981;
     --warning-color: #f59e0b;
     --danger-color: #ef4444;
-    --info-color: #3b82f6;
+    --info-color: #0ea5e9;
+    
+    /* Professional Navy/Dark Blue */
+    --navy-dark: #1e293b;
+    --navy-medium: #334155;
+    --navy-light: #475569;
     
     /* Background Colors */
-    --light-bg: #fafafa;
+    --light-bg: #f8fafc;
     --lighter-bg: #ffffff;
     --dark-bg: #1e293b;
-    --gradient-bg: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%);
+    --gradient-bg: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
     --subtle-gradient: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     
     /* Text Colors */
@@ -37,7 +42,7 @@
     
     /* Form Elements */
     --input-border: #d1d5db;
-    --input-focus: #8b5cf6;
+    --input-focus: #3b82f6;
     --input-bg: #ffffff;
     
     /* Layout */
@@ -103,96 +108,93 @@ body {
     }
 }
 
-/* Navbar Enhancements - Compact and Responsive */
+/* Navbar Enhancements - Professional Blue Theme */
 .navbar {
-    background: var(--gradient-bg) !important;
-    box-shadow: var(--card-shadow-lg);
-    padding: 0.5rem 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: sticky;
-    top: 0;
-    z-index: 1000;
+    background: var(--navy-dark) !important;
+    border-bottom: 3px solid var(--primary-color);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 2px 20px rgba(30, 64, 175, 0.1);
+    padding: 0.75rem 0;
     min-height: var(--navbar-height);
 }
 
 .navbar-brand {
+    font-weight: 700;
     font-size: var(--font-size-xl);
-    font-weight: 600;
     color: var(--text-contrast) !important;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    letter-spacing: 0.25px;
+    transition: var(--transition);
 }
 
 .navbar-brand:hover {
-    color: rgba(255, 255, 255, 0.9) !important;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    color: var(--primary-light) !important;
+    transform: scale(1.02);
 }
 
 .navbar-brand i {
+    color: var(--primary-light);
     margin-right: 0.5rem;
-    font-size: var(--font-size-lg);
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
+    font-size: 1.1em;
 }
 
 .navbar-nav .nav-link {
+    color: var(--text-contrast) !important;
     font-weight: 500;
     font-size: var(--font-size-sm);
-    color: rgba(255, 255, 255, 0.9) !important;
-    transition: var(--transition);
-    padding: 0.4rem 0.8rem !important;
+    padding: 0.5rem 1rem !important;
     border-radius: var(--border-radius);
-    margin: 0 0.1rem;
+    transition: var(--transition);
+    margin: 0 0.25rem;
 }
 
 .navbar-nav .nav-link:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white !important;
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--primary-light) !important;
     transform: translateY(-1px);
 }
 
 /* Responsive navbar */
-@media (max-width: 991px) {
+@media (max-width: 768px) {
     .navbar-collapse {
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: var(--border-radius);
+        background: var(--navy-dark);
         margin-top: 0.5rem;
-        padding: 0.5rem;
+        padding: 1rem;
+        border-radius: var(--border-radius);
+        border: 1px solid var(--primary-color);
     }
     
     .navbar-nav .nav-link {
-        margin: 0.1rem 0;
+        text-align: center;
+        margin: 0.25rem 0;
     }
 }
 
-/* Button Styles - Compact and Professional */
+/* Button Enhancements - Professional Blue Theme */
 .btn {
     border-radius: var(--border-radius);
     font-weight: 500;
     font-size: var(--font-size-sm);
     padding: 0.5rem 1rem;
     transition: var(--transition);
-    border: 1px solid transparent;
-    text-transform: none;
-    letter-spacing: 0.01em;
+    border: none;
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    justify-content: center;
 }
 
 .btn-gradient-primary,
 .btn-primary {
     background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-    color: white;
-    box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2);
-    border: none;
+    color: var(--text-contrast);
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
 .btn-gradient-primary:hover,
 .btn-primary:hover {
     background: linear-gradient(135deg, var(--primary-dark), var(--primary-color));
-    color: white;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    color: var(--text-contrast);
 }
 
 .btn-gradient-primary:disabled,
@@ -252,10 +254,10 @@ body {
     transform: translateY(-1px);
 }
 
-/* Card Enhancements - Responsive and Professional */
+/* Card Enhancements - Professional Blue Accents */
 .card {
     border: 1px solid var(--card-border);
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-lg);
     box-shadow: var(--card-shadow);
     transition: var(--transition);
     overflow: hidden;
@@ -264,49 +266,50 @@ body {
 
 .card:hover {
     box-shadow: var(--card-shadow-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     border-color: var(--primary-light);
 }
 
 .card-header {
-    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    background: linear-gradient(135deg, var(--navy-dark), var(--navy-medium));
     color: var(--text-contrast);
     font-weight: 600;
     font-size: var(--font-size-base);
-    padding: 0.75rem 1rem;
-    border-bottom: none;
+    padding: 1rem 1.25rem;
+    border-bottom: 2px solid var(--primary-color);
     text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 }
 
 .card-body {
-    padding: 1rem;
+    padding: 1.25rem;
     font-size: var(--font-size-sm);
     color: var(--text-primary);
-    line-height: 1.4;
+    line-height: 1.5;
 }
 
 /* Responsive card spacing */
 @media (max-width: 768px) {
     .card-header {
-        padding: 0.6rem 0.75rem;
+        padding: 0.75rem 1rem;
         font-size: var(--font-size-sm);
     }
     
     .card-body {
-        padding: 0.75rem;
+        padding: 1rem;
     }
 }
 
-/* Dashboard Cards - Professional and Compact */
+/* Dashboard Cards - Professional Blue Theme */
 .dashboard-card {
     background: var(--subtle-gradient);
     border: 1px solid var(--card-border);
     transition: var(--transition);
+    border-radius: var(--border-radius-lg);
 }
 
 .dashboard-card:hover {
     box-shadow: var(--card-shadow-hover);
-    transform: translateY(-1px);
+    transform: translateY(-2px);
     border-color: var(--primary-light);
 }
 
@@ -314,6 +317,7 @@ body {
     background: var(--gradient-bg);
     color: white;
     border: none;
+    border-radius: var(--border-radius-lg);
 }
 
 .stat-card h3 {
@@ -358,7 +362,7 @@ body {
 
 .form-control:focus {
     border-color: var(--input-focus);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     outline: none;
     background: var(--input-bg);
 }
@@ -717,13 +721,13 @@ body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Footer - Compact */
+/* Footer - Professional Blue Theme */
 footer {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-medium) 100%);
     color: white;
     padding: 1.5rem 0;
     margin-top: 1.5rem;
-    border-top: 2px solid rgba(255, 255, 255, 0.1);
+    border-top: 3px solid var(--primary-color);
     font-size: 0.85rem;
 }
 
@@ -776,10 +780,10 @@ footer {
     background: var(--primary-dark);
 }
 
-/* Login/Register specific - Compact No-Scroll Design */
+/* Login/Register specific - Professional Blue Theme */
 .auth-wrapper {
     min-height: calc(100vh - var(--navbar-height));
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--navy-dark) 100%);
     padding: 0.75rem;
     display: flex;
     align-items: center;
@@ -799,10 +803,11 @@ footer {
 }
 
 .auth-card .card-header {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.9), rgba(118, 75, 162, 0.9));
+    background: linear-gradient(135deg, var(--navy-dark), var(--primary-color));
     color: white;
     padding: 1rem;
     text-align: center;
+    border-bottom: 2px solid var(--primary-color);
 }
 
 .auth-card .card-header h4 {
@@ -862,14 +867,15 @@ footer {
     }
 }
 
-/* Dashboard specific - Normalized */
+/* Dashboard specific - Professional Blue Theme */
 .dashboard-header {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--primary-color) 100%);
     color: white;
     padding: 1.5rem;
-    border-radius: var(--border-radius);
+    border-radius: var(--border-radius-lg);
     margin-bottom: 1.5rem;
     text-align: center;
+    border: 2px solid var(--primary-light);
 }
 
 .dashboard-header h1 {
@@ -980,7 +986,7 @@ footer {
 }
 
 .bg-gradient-custom {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--primary-color) 100%);
 }
 
 /* Product management enhancements */
@@ -1353,4 +1359,93 @@ h6 { font-size: 0.825rem; font-weight: 600; }
          .row {
          --bs-gutter-x: 0.75rem;
      }
+}
+
+/* Hero Section - Professional Accorian Style */
+.hero-section {
+    position: relative;
+    overflow: hidden;
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--navy-dark) 0%, var(--primary-dark) 50%, var(--primary-color) 100%);
+    opacity: 0.95;
+    z-index: 1;
+}
+
+.hero-section > .container {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-content {
+    padding: 2rem 0;
+}
+
+.hero-content h1 {
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.hero-content .lead {
+    font-weight: 400;
+    opacity: 0.95;
+    line-height: 1.6;
+}
+
+.btn-gradient-primary {
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    text-transform: none;
+    letter-spacing: 0.01em;
+    border-radius: 50px;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn-outline-light {
+    padding: 0.75rem 2rem;
+    font-weight: 600;
+    border-radius: 50px;
+    border-width: 2px;
+}
+
+/* Feature Cards - Professional Style */
+.features-section .feature-card {
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    border-radius: var(--border-radius-lg);
+    transition: all 0.3s ease;
+    background: white;
+}
+
+.features-section .feature-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--primary-color);
+    box-shadow: 0 20px 40px rgba(59, 130, 246, 0.1);
+}
+
+.features-section .feature-card .card-body {
+    padding: 2rem;
+}
+
+.features-section .feature-card i {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+}
+
+.features-section .feature-card h5 {
+    color: var(--navy-dark);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.features-section .feature-card p {
+    color: var(--text-secondary);
+    line-height: 1.6;
 }
