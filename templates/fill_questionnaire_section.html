@@ -73,17 +73,18 @@
                                             {% endif %}
                                             
                                             <div class="answer-options">
+                                                {% set question_idx = loop.index0 %}
                                                 {% for option in question.options %}
                                                 <div class="form-check answer-option">
                                                     <input class="form-check-input" type="radio" 
-                                                           name="answer_{{ loop.index0 }}" 
-                                                           id="answer_{{ outer_loop.index0 }}_{{ loop.index0 }}" 
+                                                           name="answer_{{ question_idx }}" 
+                                                           id="answer_{{ question_idx }}_{{ loop.index0 }}" 
                                                            value="{{ option }}"
-                                                           data-question-idx="{{ outer_loop.index0 }}"
+                                                           data-question-idx="{{ question_idx }}"
                                                            data-section-idx="{{ section_idx }}"
                                                            data-product-id="{{ product.id }}"
                                                            required>
-                                                    <label class="form-check-label" for="answer_{{ outer_loop.index0 }}_{{ loop.index0 }}">
+                                                    <label class="form-check-label" for="answer_{{ question_idx }}_{{ loop.index0 }}">
                                                         {{ option }}
                                                     </label>
                                                 </div>
@@ -96,9 +97,9 @@
                                             <label class="form-label">
                                                 <i class="bi bi-chat-left-text me-2"></i>Additional Comments:
                                             </label>
-                                            <textarea class="form-control" name="comment_{{ loop.index0 }}" 
+                                            <textarea class="form-control" name="comment_{{ question_idx }}" 
                                                       rows="3" placeholder="Any additional information..."
-                                                      data-question-idx="{{ loop.index0 }}"
+                                                      data-question-idx="{{ question_idx }}"
                                                       data-section-idx="{{ section_idx }}"
                                                       data-product-id="{{ product.id }}"></textarea>
                                         </div>
@@ -107,7 +108,7 @@
                                             <label class="form-label">
                                                 <i class="bi bi-paperclip me-2"></i>Upload Evidence (Optional):
                                             </label>
-                                            <input type="file" class="form-control" name="evidence_{{ loop.index0 }}" 
+                                            <input type="file" class="form-control" name="evidence_{{ question_idx }}" 
                                                    accept=".csv,.txt,.pdf,.jpg,.jpeg,.png">
                                             <div class="form-text">
                                                 Supported formats: CSV, TXT, PDF, JPG, JPEG, PNG
