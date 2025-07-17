@@ -16,39 +16,39 @@
         <div class="card-body">
             <div class="row align-items-center">
                 <div class="col-8">
-                    <h3 class="mb-0">{{ responses|length }}</h3>
+                    <h3 class="mb-0">{{ clients_data|length }}</h3>
+                    <p class="mb-0">Total Clients</p>
+                </div>
+                <div class="col-4">
+                    <i class="bi bi-people icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card stat-card text-center">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-8">
+                    <h3 class="mb-0">{% set total_products = 0 %}{% for client_id, client_data in clients_data.items() %}{% set total_products = total_products + client_data.products|length %}{% endfor %}{{ total_products }}</h3>
+                    <p class="mb-0">Total Products</p>
+                </div>
+                <div class="col-4">
+                    <i class="bi bi-box-seam icon"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card stat-card text-center">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-8">
+                    <h3 class="mb-0">{% set total_responses = 0 %}{% for client_id, client_data in clients_data.items() %}{% for product_id, product_data in client_data.products.items() %}{% set total_responses = total_responses + product_data.responses|length %}{% endfor %}{% endfor %}{{ total_responses }}</h3>
                     <p class="mb-0">Total Responses</p>
                 </div>
                 <div class="col-4">
                     <i class="bi bi-chat-square-text icon"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="card stat-card text-center">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-8">
-                    <h3 class="mb-0">{{ responses|selectattr('comment')|list|length }}</h3>
-                    <p class="mb-0">With Comments</p>
-                </div>
-                <div class="col-4">
-                    <i class="bi bi-chat-left-dots icon"></i>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="card stat-card text-center">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-8">
-                    <h3 class="mb-0">{{ responses|groupby('section')|list|length }}</h3>
-                    <p class="mb-0">Active Sections</p>
-                </div>
-                <div class="col-4">
-                    <i class="bi bi-layers icon"></i>
                 </div>
             </div>
         </div>
@@ -70,10 +70,10 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <select class="form-select" id="sectionFilter">
-                            <option value="">All Sections</option>
-                            {% for section in responses|groupby('section') %}
-                            <option value="{{ section.0 }}">{{ section.0 }}</option>
+                        <select class="form-select" id="clientFilter">
+                            <option value="">All Clients</option>
+                            {% for client_id, client_data in clients_data.items() %}
+                            <option value="{{ client_id }}">{{ client_data.user.username }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -105,65 +105,88 @@
                 </h5>
             </div>
             <div class="card-body">
-                {% if responses %}
-                    <div class="row" id="responsesContainer">
-                        {% for resp in responses %}
-                        <div class="col-md-6 mb-4 response-item" 
-                             data-section="{{ resp.section }}" 
-                             data-status="{% if resp.comment %}reviewed{% else %}pending{% endif %}">
-                            <div class="card h-100 shadow-sm border-0">
-                                <div class="card-header bg-light">
-                                    <div class="row align-items-center">
-                                        <div class="col">
-                                            <h6 class="mb-0">
-                                                <i class="bi bi-folder me-2"></i>{{ resp.section }}
-                                            </h6>
-                                        </div>
-                                        <div class="col-auto">
-                                            {% if resp.comment %}
-                                                <span class="status-badge status-completed">Reviewed</span>
-                                            {% else %}
-                                                <span class="status-badge status-pending">Pending</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
+                {% if clients_data %}
+                    <div id="clientsContainer">
+                        {% for client_id, client_data in clients_data.items() %}
+                        <div class="client-section mb-4" data-client-id="{{ client_id }}">
+                            <div class="card border-primary mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">
+                                        <i class="bi bi-person-circle me-2"></i>{{ client_data.user.username }}
+                                        <span class="badge bg-light text-dark ms-2">{{ client_data.user.organization or 'No Organization' }}</span>
+                                    </h5>
                                 </div>
                                 <div class="card-body">
-                                    <div class="mb-3">
-                                        <h6 class="text-primary mb-2">
-                                            <i class="bi bi-question-circle me-2"></i>Question:
-                                        </h6>
-                                        <p class="mb-2">{{ resp.question }}</p>
+                                    {% for product_id, product_data in client_data.products.items() %}
+                                    <div class="product-section mb-4">
+                                        <div class="card border-secondary">
+                                            <div class="card-header bg-secondary text-white">
+                                                <h6 class="mb-0">
+                                                    <i class="bi bi-box-seam me-2"></i>{{ product_data.product.name }}
+                                                    <span class="badge bg-light text-dark ms-2">{{ product_data.responses|length }} responses</span>
+                                                </h6>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="row">
+                                                    {% for resp in product_data.responses %}
+                                                    <div class="col-md-6 mb-3">
+                                                        <div class="card h-100 shadow-sm border-0">
+                                                            <div class="card-header bg-light">
+                                                                <div class="row align-items-center">
+                                                                    <div class="col">
+                                                                        <h6 class="mb-0">
+                                                                            <i class="bi bi-folder me-2"></i>{{ resp.section }}
+                                                                        </h6>
+                                                                    </div>
+                                                                    <div class="col-auto">
+                                                                        {% if resp.comment %}
+                                                                            <span class="status-badge status-completed">Reviewed</span>
+                                                                        {% else %}
+                                                                            <span class="status-badge status-pending">Pending</span>
+                                                                        {% endif %}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="card-body">
+                                                                <div class="mb-2">
+                                                                    <h6 class="text-primary mb-1">
+                                                                        <i class="bi bi-question-circle me-2"></i>Question:
+                                                                    </h6>
+                                                                    <p class="mb-2 small">{{ resp.question }}</p>
+                                                                </div>
+                                                                
+                                                                <div class="mb-2">
+                                                                    <h6 class="text-success mb-1">
+                                                                        <i class="bi bi-check-circle me-2"></i>Answer:
+                                                                    </h6>
+                                                                    <span class="badge bg-success">{{ resp.answer }}</span>
+                                                                </div>
+                                                                
+                                                                {% if resp.comment %}
+                                                                <div class="mb-2">
+                                                                    <h6 class="text-warning mb-1">
+                                                                        <i class="bi bi-chat-text me-2"></i>Comment:
+                                                                    </h6>
+                                                                    <p class="text-muted small">{{ resp.comment }}</p>
+                                                                </div>
+                                                                {% endif %}
+                                                                
+                                                                <div class="d-grid">
+                                                                    <a href="{{ url_for('review_questionnaire', response_id=resp.id) }}" 
+                                                                       class="btn btn-gradient-primary rounded-pill btn-sm">
+                                                                        <i class="bi bi-pencil-square me-2"></i>
+                                                                        {% if resp.comment %}Update{% else %}Review{% endif %}
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    
-                                    <div class="mb-3">
-                                        <h6 class="text-success mb-2">
-                                            <i class="bi bi-check-circle me-2"></i>Answer:
-                                        </h6>
-                                        <span class="badge bg-success">{{ resp.answer }}</span>
-                                    </div>
-                                    
-                                    {% if resp.comment %}
-                                    <div class="mb-3">
-                                        <h6 class="text-warning mb-2">
-                                            <i class="bi bi-chat-text me-2"></i>Comment:
-                                        </h6>
-                                        <p class="text-muted small">{{ resp.comment }}</p>
-                                    </div>
-                                    {% endif %}
-                                    
-                                    <div class="d-grid">
-                                        <a href="{{ url_for('review_questionnaire', response_id=resp.id) }}" 
-                                           class="btn btn-gradient-primary rounded-pill">
-                                            <i class="bi bi-pencil-square me-2"></i>
-                                            {% if resp.comment %}Update Review{% else %}Add Review{% endif %}
-                                        </a>
-                                    </div>
-                                </div>
-                                <div class="card-footer bg-light">
-                                    <small class="text-muted">
-                                        <i class="bi bi-clock me-2"></i>Response ID: {{ resp.id }}
-                                    </small>
+                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
@@ -204,10 +227,10 @@
                     <div class="col-md-6">
                         <h6>Section Coverage</h6>
                         <div class="list-group">
-                            {% for section in responses|groupby('section') %}
+                            {% for client_id, client_data in clients_data.items() %}
                             <div class="list-group-item d-flex justify-content-between align-items-center">
-                                {{ section.0 }}
-                                <span class="badge bg-primary">{{ section.1|length }}</span>
+                                {{ client_data.user.username }}
+                                <span class="badge bg-primary">{{ client_data.products|length }} products</span>
                             </div>
                             {% endfor %}
                         </div>
@@ -222,15 +245,14 @@
 // Search and Filter Functions
 function filterResponses() {
     const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-    const sectionFilter = document.getElementById('sectionFilter').value;
+    const clientFilter = document.getElementById('clientFilter').value;
     const statusFilter = document.getElementById('statusFilter').value;
     
-    const items = document.querySelectorAll('.response-item');
+    const clientSections = document.querySelectorAll('.client-section');
     
-    items.forEach(item => {
-        const text = item.textContent.toLowerCase();
-        const section = item.getAttribute('data-section');
-        const status = item.getAttribute('data-status');
+    clientSections.forEach(section => {
+        const text = section.textContent.toLowerCase();
+        const clientId = section.getAttribute('data-client-id');
         
         let show = true;
         
@@ -238,28 +260,24 @@ function filterResponses() {
             show = false;
         }
         
-        if (sectionFilter && section !== sectionFilter) {
+        if (clientFilter && clientId !== clientFilter) {
             show = false;
         }
         
-        if (statusFilter && status !== statusFilter) {
-            show = false;
-        }
-        
-        item.style.display = show ? 'block' : 'none';
+        section.style.display = show ? 'block' : 'none';
     });
 }
 
 function resetFilters() {
     document.getElementById('searchInput').value = '';
-    document.getElementById('sectionFilter').value = '';
+    document.getElementById('clientFilter').value = '';
     document.getElementById('statusFilter').value = '';
     filterResponses();
 }
 
 // Event listeners
 document.getElementById('searchInput').addEventListener('input', filterResponses);
-document.getElementById('sectionFilter').addEventListener('change', filterResponses);
+document.getElementById('clientFilter').addEventListener('change', filterResponses);
 document.getElementById('statusFilter').addEventListener('change', filterResponses);
 
 // Animation for stats cards

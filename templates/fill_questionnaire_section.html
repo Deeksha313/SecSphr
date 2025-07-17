@@ -59,6 +59,7 @@
                 <div class="card-body">
                     <form method="post" enctype="multipart/form-data" id="sectionForm">
                         {% for question in questions %}
+                        {% set outer_loop_index = loop.index0 %}
                         <div class="card mb-4 question-card questionnaire-card">
                             <div class="card-body">
                                 <div class="row">
@@ -76,14 +77,15 @@
                                                 {% for option in question.options %}
                                                 <div class="form-check answer-option">
                                                     <input class="form-check-input" type="radio" 
-                                                           name="answer_{{ loop.parent.loop.index0 }}" 
-                                                           id="answer_{{ loop.parent.loop.index0 }}_{{ loop.index0 }}" 
+                                                           name="answer_{{ outer_loop_index }}" 
+                                                           id="answer_{{ outer_loop_index }}_{{ loop.index0 }}" 
                                                            value="{{ option }}"
-                                                           data-question-idx="{{ loop.parent.loop.index0 }}"
+                                                           data-question-idx="{{ outer_loop_index }}"
                                                            data-section-idx="{{ section_idx }}"
                                                            data-product-id="{{ product.id }}"
+                                                           {% if existing_answers and outer_loop_index in existing_answers and existing_answers[outer_loop_index].answer == option %}checked{% endif %}
                                                            required>
-                                                    <label class="form-check-label" for="answer_{{ loop.parent.loop.index0 }}_{{ loop.index0 }}">
+                                                    <label class="form-check-label" for="answer_{{ outer_loop_index }}_{{ loop.index0 }}">
                                                         {{ option }}
                                                     </label>
                                                 </div>
@@ -100,7 +102,7 @@
                                                       rows="3" placeholder="Any additional information..."
                                                       data-question-idx="{{ loop.index0 }}"
                                                       data-section-idx="{{ section_idx }}"
-                                                      data-product-id="{{ product.id }}"></textarea>
+                                                      data-product-id="{{ product.id }}">{% if existing_answers and loop.index0 in existing_answers %}{{ existing_answers[loop.index0].comment }}{% endif %}</textarea>
                                         </div>
                                         
                                         <div class="mb-3">

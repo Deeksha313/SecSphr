@@ -217,11 +217,76 @@ def dashboard():
         
         return render_template('dashboard_client.html', products=products_with_status, unread_comments=unread_comments)
     elif role == 'lead':
-        resps = QuestionnaireResponse.query.all()
-        return render_template('dashboard_lead.html', responses=resps)
+        # Get all responses with user and product information
+        resps = db.session.query(QuestionnaireResponse, User, Product).join(
+            User, QuestionnaireResponse.user_id == User.id
+        ).join(
+            Product, QuestionnaireResponse.product_id == Product.id
+        ).all()
+        
+        # Organize responses by client and product
+        clients_data = {}
+        for resp, user, product in resps:
+            if user.id not in clients_data:
+                clients_data[user.id] = {
+                    'user': user,
+                    'products': {}
+                }
+            if product.id not in clients_data[user.id]['products']:
+                clients_data[user.id]['products'][product.id] = {
+                    'product': product,
+                    'responses': []
+                }
+            clients_data[user.id]['products'][product.id]['responses'].append(resp)
+        
+        return render_template('dashboard_lead.html', clients_data=clients_data)
     elif role == 'superuser':
         products = Product.query.all()
-        return render_template('dashboard_superuser.html', products=products)
+        
+        # Get detailed product data with responses and scoring
+        products_data = []
+        for product in products:
+            responses = QuestionnaireResponse.query.filter_by(product_id=product.id).all()
+            
+            # Calculate scores by dimension
+            dimension_scores = {}
+            for resp in responses:
+                if resp.section not in dimension_scores:
+                    dimension_scores[resp.section] = {'total': 0, 'count': 0}
+                
+                # Simple scoring based on answer (this can be made more sophisticated)
+                score = 0
+                if 'yes' in resp.answer.lower() or 'high' in resp.answer.lower():
+                    score = 100
+                elif 'partially' in resp.answer.lower() or 'medium' in resp.answer.lower():
+                    score = 50
+                elif 'no' in resp.answer.lower() or 'low' in resp.answer.lower():
+                    score = 0
+                else:
+                    score = 25  # Default for other answers
+                
+                dimension_scores[resp.section]['total'] += score
+                dimension_scores[resp.section]['count'] += 1
+            
+            # Calculate average scores for each dimension
+            for dimension in dimension_scores:
+                if dimension_scores[dimension]['count'] > 0:
+                    dimension_scores[dimension]['average'] = dimension_scores[dimension]['total'] / dimension_scores[dimension]['count']
+                else:
+                    dimension_scores[dimension]['average'] = 0
+            
+            # Get product owner info
+            owner = User.query.get(product.owner_id)
+            
+            products_data.append({
+                'product': product,
+                'owner': owner,
+                'responses': responses,
+                'dimension_scores': dimension_scores,
+                'total_responses': len(responses)
+            })
+        
+        return render_template('dashboard_superuser.html', products_data=products_data)
     return redirect(url_for('index'))
 
 def is_assessment_complete(product_id, user_id):
@@ -258,17 +323,49 @@ def fill_questionnaire_section(product_id, section_idx):
         return redirect(url_for('dashboard'))
     section_name = sections[section_idx]
     questions = QUESTIONNAIRE[section_name]
+    
+    # Get existing responses for this section to pre-populate form
+    existing_responses = QuestionnaireResponse.query.filter_by(
+        product_id=product_id, 
+        user_id=session['user_id'], 
+        section=section_name
+    ).all()
+    
+    # Create a dictionary for quick lookup of existing responses
+    existing_answers = {}
+    for resp in existing_responses:
+        for i, q in enumerate(questions):
+            if q['question'] == resp.question:
+                existing_answers[i] = {
+                    'answer': resp.answer,
+                    'comment': resp.comment,
+                    'evidence_path': resp.evidence_path
+                }
+                break
+    
     if request.method == 'POST':
+        # Delete existing responses for this section before adding new ones
+        QuestionnaireResponse.query.filter_by(
+            product_id=product_id, 
+            user_id=session['user_id'], 
+            section=section_name
+        ).delete()
+        
         for i, q in enumerate(questions):
             answer = request.form.get(f'answer_{i}')
             comment = request.form.get(f'comment_{i}')
             file = request.files.get(f'evidence_{i}')
             evidence_path = ""
-            if file and allowed_file(file.filename):
+            
+            # Keep existing evidence if no new file uploaded
+            if file and file.filename and allowed_file(file.filename):
                 filename = secure_filename(f"{product_id}_{section_idx}_{i}_{file.filename}")
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 evidence_path = filepath
+            elif i in existing_answers:
+                evidence_path = existing_answers[i].get('evidence_path', '')
+            
             resp = QuestionnaireResponse(
                 user_id=session['user_id'],
                 product_id=product_id,
@@ -285,6 +382,7 @@ def fill_questionnaire_section(product_id, section_idx):
         else:
             flash("All sections completed. Thank you!")
             return redirect(url_for('dashboard'))
+    
     completed_sections = [
         s.section for s in QuestionnaireResponse.query.filter_by(product_id=product_id, user_id=session['user_id']).distinct(QuestionnaireResponse.section)
     ]
@@ -296,7 +394,8 @@ def fill_questionnaire_section(product_id, section_idx):
         questions=questions,
         section_idx=section_idx,
         total_sections=len(sections),
-        progress=progress
+        progress=progress,
+        existing_answers=existing_answers
     )
 
 @app.route('/product/<int:product_id>/results')
