@@ -12,7 +12,7 @@
     <style>
         /* Override Bootstrap defaults with professional theme */
         .bg-gradient-primary {
-            background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 50%, #c4b5fd 100%);
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #60a5fa 100%);
         }
         
         /* Responsive typography */
@@ -64,8 +64,11 @@
 
 <nav class="navbar navbar-expand-lg navbar-dark shadow-lg" style="background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%);">
     <div class="container">
+
         <a class="navbar-brand fw-bold text-white" href="/">
-            <i class="bi bi-shield-lock-fill text-primary"></i> SecureSphere
+    <i class="bi bi-shield-lock-fill text-primary"></i> SecureSphere
+</a>
+
         </a>
         <button class="navbar-toggler border-light" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
@@ -123,7 +126,7 @@
         <div class="row">
             <div class="col-12">
                 <p class="mb-0">
-                    <i class="bi bi-shield-lock-fill me-2"></i>
+                    <i class="bi bi-shield-check-fill me-2"></i>
                     © {{ config.get('APP_NAME', 'SecureSphere') }} 2025. All rights reserved.
                 </p>
                 <p class="mb-0 opacity-75">
