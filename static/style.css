@@ -1,4 +1,27 @@
 /* Modern Professional Styling - Accorian-inspired Design */
+
+/* Enhanced Navbar Styling */
+.navbar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.navbar .nav-link:active {
+    transform: translateY(0);
+}
+
+.navbar-brand:hover .bi-shield-lock-fill {
+    color: #a78bfa !important;
+    transition: color 0.2s ease;
+}
+
+@media (max-width: 991.98px) {
+    .navbar .nav-link {
+        margin: 0.25rem 0 !important;
+        text-align: center;
+    }
+}
 :root {
     /* Professional Blue Palette - Inspired by Accorian */
     --primary-color: #3b82f6;
